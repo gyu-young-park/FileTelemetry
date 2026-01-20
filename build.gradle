@@ -1,0 +1,45 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '4.0.1' apply false
+	id 'io.spring.dependency-management' version '1.1.7' apply false
+}
+
+/**
+ * 모든 프로젝트 공통 설정
+ */
+allprojects {
+	group = 'io.github.observability'
+	version = '0.0.1-SNAPSHOT'
+
+	repositories {
+		mavenCentral()
+	}
+}
+
+/**
+ * 모든 서브모듈 공통 설정
+ * - Spring Boot ❌
+ * - 순수 Java 기준
+ */
+subprojects {
+	apply plugin: 'java-library'
+
+	java {
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(21)
+		}
+	}
+
+	dependencies {
+		// 테스트는 공통으로
+		testImplementation 'org.junit.jupiter:junit-jupiter'
+
+		// Lombok 공통
+		compileOnly 'org.projectlombok:lombok:1.18.32'
+		annotationProcessor 'org.projectlombok:lombok:1.18.32'
+	}
+
+	tasks.named('test') {
+		useJUnitPlatform()
+	}
+}
