@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: file-telemetry-api
+  profiles:
+    active: standalone # 기본값을 standalone으로 설정
