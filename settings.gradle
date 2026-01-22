@@ -1,5 +1,5 @@
 rootProject.name = 'file-telemetry'
 
 include 'file-telemetry-core'
-//include 'file-telemetry-infra'
+include 'file-telemetry-infra'
 include 'file-telemetry-api'
