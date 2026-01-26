@@ -1,0 +1,192 @@
+# file telemetry 동작 설명
+file의 생애주기와, file 안의 데이터가 어떻게 흘러가서, 다른 파일이나 데이터가 되어 끝나는 지를 관측하는 trace 디버깅 앱이다. trace 디버깅을 위해 시각화 툴을 제공하며, 모놀릭 서비스와 마이크로서비스를 모두 제공한다. 
+
+1. file의 생애주기와, file의 데이터들이 어떻게 흘러가고, 다른 파일이 되거나 데이터가 됨을 trace할 수 있어야 한다. 이는 하나의 file에 대한 식별자 key가 있어야 하며, 식별자는 사용자가 제공한 값을 써도 되고, 앱이 제공해주기도 해야한다.
+2. file들끼리 묶어서 하나의 그룹을 만들어 trace할 수 있다. 이를 trace라고 하자. trace안에 여러 file과 데이터 흐름이 있는 것이다.
+3. file을 로컬이나 리모트 디스크에 저장하고 관리하는 기능도 존재한다. 또한, 압축 기능도 제공하고, 로컬이나 리모트 디스크의 제한 용량에 따른 리텐션 기능, 보관 기간 제한 기능도 제공한다.
+4. 저장한 파일들을 외부로 export하도록 하는 기능도 제공한다. 저장 일자에 따른 tar.gz 파일도 제공할 수 있어야 한다.
+5. file 관련 로그 데이터는 redis나 kafka 등 stream을 통해서 효율적으로 받는다.
+6. 배치로, 15분 30분, 1시간, 3시간, 6시간, 12시간 통계 정보와 서머리를 제공한다.
+7. telemetry 데이터들을 export 할 수 있어야한다. export한 데이터들은 일정 기간 별로도 가능하고, trace 기준, file에 대한 식별자 기준으로도 제공해야 한다.
+8. 외부에 export할 때는 데이터를 분리해서 한번에 많은 파일을 보내지 않도록 한다.
+9. 모놀릭 시스템도 제공하는데 모놀릭 시스템에서는 정보들을 sqlite3로 local에 저장한다. 모놀릭이어도 인스턴스가 1개는 아니고, n개 일 수 있는데, 이 경우, 배치 앱을 따로 두어서, 데이터를 하나로 묶어주고 정제해주도록 한다. 만약, 인스턴스가 1개****이면 모든 앱에서 한 번에 다 한다. 
+10. 마이크로서비스로 하면 DB는 postgre를 사용한다. 이때에도 배치 앱은 하나를 두어서 데이터들에 대한 서머리, 통계 정보들을 DB에 저장한다.
+11. 데이터를 보내는 유저 정보를 저장하고, 너무 많이 보내면 flow control을 한다. 단, 데이터를 못 받게 하는게 아니라 일시적으로 버퍼링하도록 하여, 나중에 처리한다. 이는 데이터의 순서가 그렇게 중요하지 않기 때문이다.
+12. 인증된 유저만 telemetry 정보와 파일을 전송할 수 있고, 파일과 트레이스 정보를 가져올 때도 인증된 유저만 가능하다.
+13. 맨 처음 시스템끼리의 인증을 할 때 user의 식별자를 받을 수 있다. user 식별자는 맨 처음에 발급받을 수도 있다. 즉, subscribe를 하는 로직이 있을 수 있다.
+13. trace와 파일, 데이터 등 telemetry 정보를 줄 때 user의 식별자를 제공받을 수 있다. 단, trace에는 무조건 user 식별자를 넘겨줘야 하는데, 파일과 데이터에는 user 식별자를 넘겨주지 않아도 된다. 즉, 결측되어도 되는데 이는 나중에 배치 처리로 결측치를 넣어주도록 한다.
+14. 자바 클라이언트를 제공해서, 쉽게 API를 사용할수 있도록 해준다.
+
+## 시나리오
+관측 대상 app들이 있고, file telemetry가 단일 인스턴스로 동작한다고 가정한다.
+
+1. 관측 대상들이 file telemetry에 처음에 REST로 인증을 시도하고, 자신의 유저 식별자를 file telemetry에 전달한다. 
+2. 관측 대상이 외부로 file을 받고, file은 REST나 gRPC 등 다양한 방식으로 전달,이때 file은 압축되어 로컬이나 원격지에 저장, trace 시작 정보를 file telemetry에 제공한다. 이때 redis나 kafka를 쓴다.
+3. 관측 대상이 file을 file telemetry에 보내면서, file 처리 도중의 정보들을 telemetry로 전달한다. telemetry 전달은 redis나 kafka를 쓴다.
+4. file 내욜을 읽고 A라는 file 내용을 B라는 데이터로 변환했다는 정보로 file이 data로 되었다는 것을 알려준다. 
+5. data 처리 와중의 log를 telemetry로 전달한다.
+6. data는 또 다른 data로 또 변환이 가능하다. 이는 하나의 데이터에 여러 데이터들이 연관되어있다는 것을 알 수 있다.
+7. data가 나중에 C라는 file로 되었다는 정보를 telemetry로 전달한다. 이를 통해 data하나는 여러 파일과 연관되어있다는 것을 알 수 있고, file도 여러 데이터들과 연관되었다는 것을 알 수 있다.
+8. trace의 끝을 알리는 log를 전달한다. 딱히 끝을 알리지 않아도 마지막 제공한 log가 결국은 마지막 로그이다.
+9. 사용자는 이를 통해서 하나의 trace에 몇 개의 file들이 있었고, 어떤 file들이 도중에 어떤 이유로 삭제되거나, 데이터로 변환이 안되었는 지를 캐치할 수 있다. 그리고 어떤 file들이 데이터로 변환되고, 어떤 데이터로 만들어졌으며 그 데이터들이 또 어떤 파일, DB에 저장되었는 지를 확인할 수 있다. 
+10. 시각화를 위한 툴을 제공하여 다음과 같은 모습을 제공한다.
+
+```text                     (사유: 로그 기록 참조)
+            -------F1ile1 -> drop
+            |               (사유: 로그 기록 참조)
+trace(A)----|-------File2 -> drop     |--- data1 ----- data4
+            |                         |--- data2 ----- data5 ---> File4
+            -------File3-------------------|--- data3 ----- data6
+```
+
+11. 저장한 file들을 보관하는데, 너무 파일 수가 많거나, 파일의 용량이 크면 리텐션을 실행한다. 리텐션 기록들을 DB에 남긴다.
+12. 배치를 통해서 서머리 정보와 통계 정보를 제공해준다. 또한, 결측치 채우기나 연관된 데이터 간의 관계성 데이터를 채워주기도 한다.
+13. 사용자가 REST API로 요청을 보내면 trace 로그 기록들을 파일 형식으로 제공한다. 이때 너무 한 파일이 크지 않도록 잘게 나누어 전달한다. 
+14. 만약, 저장된 파일을 요청하면 처음 파일을 저장할 떄의 저장 파일의 그룹 위주로 다운받을 수 있도록 해준다.
+15. 배치성 통계, 서머리 정보만 제공해주기도 한다.
+16. DB정보와 파일 정보를 전부 export할 수 있도록 해준다.
+
+## 기술적 배경
+1. Spring REST, Spring Batch
+2. Redis (나중에 Kafka)
+3. sqlite3, postgres
+
+## 추가 제안 사항
+1. file관련 로그 데이터를 저장하는 방식으로 redis, kafka stream 등을 제안했는데, 더 효율적인 다른 방식도 추천해줘
+2. 배치로 정보를 가공, 얻을 수 있는 경우들을 더 만들어줘, 스프링 배치로 할 수 있는 기능들을 더 많이 추천해줘
+3. 기술적 배경에서 더 사용할 기술이 있다면 추천해줘, 단 너무 해비하진 않았으면 좋겠어, 특히 스프링 쪽이랑 데이터 쪽
+4. 유저 인증을 할때, 유저는 일반적으로 시스템이랑 사람 둘 중 하나야, 시스템 끼리는 같은 클러스터일텐데 어떻게하면 될까?? 그리고 사람이 요청할 때는 어떻게하면 가져올 수 있게 할까? 문제는 내가 배포하는 사람이 아니라, 배포는 다른 팀이 해서 배포할 때의 정보를 기록하지 못해. 물론 요청을 보내는 사람도 클러스터에 접근해서 하도록 할 수 있어
+5. 추적 기능에 더 필요하거나, 있으면 좋은 기능들을 넣어줬으면 해
+
+## 인증 방법
+1. secret에 client-id, pw를 넣는다. 단, 이 user는 export는 불가능하다.
+2. secert을 읽고 데이터를 보내기 정도만 가능하다.
+3. register가 완료된 후에 subscribe를 신청하면 log 데이터를 받을 redis나 kafka를 준비시킨다.
+4. subscribe에 명시한 key로 telemetry 데이터를 받는다. 하나의 유저가 여러 subscribe가 가능하다. 즉, 다른 통로로 데이터를 보낼 수 있다.
+
+## 유량 제어
+1. 백 프레셔가 아닌 버퍼링 방법으로 유량을 제어한다.
+2. 너무 많이 들어오거나, 용량 문제, 메모리 문제가 생기면 데이터를 잠시 redis나 다른 곳에 버퍼링시킨다.
+3. 나중에 문제가 해결되면 하나씩 꺼내서 처리해준다.
+
+## DB 스키마
+
+```text
+Table users {
+  user_id uuid [pk]
+  user_key varchar [unique]
+  user_type varchar
+  client_id varchar
+  client_secret_hash varchar
+  can_export boolean
+  status varchar
+  created_at timestamp
+  last_seen_at timestamp
+}
+
+Table subscriptions {
+  subscription_id uuid [pk]
+  user_id uuid
+  channel_type varchar
+  channel_key varchar
+  status varchar
+  created_at timestamp
+}
+
+Table traces {
+  trace_id uuid [pk]
+  user_id uuid
+  trace_key varchar
+  start_time timestamp
+  end_time timestamp
+  status varchar
+  total_files int
+  total_log int
+  created_at timestamp
+}
+
+Table files {
+  file_id uuid [pk]
+  trace_id uuid
+  user_id uuid [null]
+  file_key varchar
+  file_name varchar
+  file_size bigint
+  file_extension varchar
+  status varchar
+  created_at timestamp
+}
+
+Table derived_data {
+  data_id uuid [pk]
+  trace_id uuid
+  user_id uuid [null]
+  name varchar
+  data_type varchar
+  status varchar
+  created_at timestamp
+}
+
+Table entity_relations {
+  relation_id uuid [pk]
+  trace_id uuid
+  from_type varchar
+  from_id uuid
+  to_type varchar
+  to_id uuid
+  relation_type varchar
+  created_at timestamp
+}
+
+Table telemetry {
+  log_id uuid [pk]
+  trace_id uuid [null]
+  user_id uuid [null]
+  entity_type varchar
+  entity_id uuid
+  event_type varchar
+  message text
+  created_at timestamp
+}
+
+Table stored_file {
+  stored_file_id uuid [pk]
+  storage_id uuid
+  user_id uuid
+  name varchar
+  compressed boolean
+  size int
+  stored_at timestamp
+}
+
+Table storage {
+  storage_id uuid [pk]
+  name varchar
+  type varchar
+  path varchar
+  created_at timestamp
+}
+
+Table batch_summaries {
+  summary_id uuid [pk]
+  time_window varchar
+  trace_count int
+  file_count int
+  data_count int
+  dropped_files int
+  created_at timestamp
+}
+
+
+Ref: subscriptions.user_id > users.user_id
+Ref: traces.user_id > users.user_id
+Ref: files.trace_id > traces.trace_id
+Ref: files.user_id > users.user_id
+Ref: derived_data.trace_id > traces.trace_id
+Ref: derived_data.user_id > users.user_id
+Ref: entity_relations.trace_id > traces.trace_id
+Ref: telemetry.trace_id > traces.trace_id
+Ref: telemetry.user_id > users.user_id
+Ref: stored_file.storage_id > storage.storage_id
+Ref: stored_file.user_id > users.user_id
+```
