@@ -5,13 +5,10 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-public class File {
-    private Trace trace;
+public class Subscription {
     private User user;
-    private String key;
-    private String name;
-    private int fileSize;
+    private TelemetryChannelType channelType;
+    private String channelKey;
     private String status;
-    private String extension;
     private LocalDateTime createdAt;
 }

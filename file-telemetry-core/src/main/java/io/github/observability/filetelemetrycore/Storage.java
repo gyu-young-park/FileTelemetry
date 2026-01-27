@@ -5,13 +5,9 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-public class File {
-    private Trace trace;
-    private User user;
-    private String key;
+public class Storage {
     private String name;
-    private int fileSize;
-    private String status;
-    private String extension;
+    private String type;
+    private String path;
     private LocalDateTime createdAt;
 }

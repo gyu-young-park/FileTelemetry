@@ -3,15 +3,14 @@ package io.github.observability.filetelemetrycore;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Data
-public class File {
+public class Telemetry {
     private Trace trace;
     private User user;
-    private String key;
-    private String name;
-    private int fileSize;
-    private String status;
-    private String extension;
+    private Optional<DerivedData> opDerivedData;
+    private Optional<File> opFile;
+    private String message;
     private LocalDateTime createdAt;
 }
