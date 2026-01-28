@@ -69,124 +69,14 @@ trace(A)----|-------File2 -> drop     |--- data1 ----- data4
 2. 너무 많이 들어오거나, 용량 문제, 메모리 문제가 생기면 데이터를 잠시 redis나 다른 곳에 버퍼링시킨다.
 3. 나중에 문제가 해결되면 하나씩 꺼내서 처리해준다.
 
-## DB 스키마
+## Subscription 시나리오
+1. 유저가 API key와 userId, userName을 넘기면 subscription이 시작된다. subscription이 완료되고 stream key를 전달한다. (인증 토큰도 전달할 지 고민)
+2. 여러 개의 instance인 경우도 있을 수 있으니, pub-sub을 사용해 다른 instance에게 subscription이 되었다고 알린다.
+3. 만약 file telemetry가 오작동 하여 다시 재기동되면, subscription 데이터를 잃을 수 있고, 계속해서 app들은 해당 stream으로 대량의 데이터를 보낼 수 있다. 따라서, 다시 기동되면 DB를 찾아서 subscription을 보고 데이터를 받아온다. 단, flow에 유의해서 정해진 양만 받는다. 
+4. 만약 file telemetry가 오작동 하여 다시 재기동되었는데, local모드라 이전 DB를 못찾을 수 있다. 이 경우는 subscription이 아무것도 없으므로, redis를 쭉 훑으면서 자신이 생성한 stream을 보고 DB에 다시 subscription을 넣는다.
+5. 주기적으로 subscription과 redis stream을 비교하여 업데이트한다. 가령, 10분 간 신규 데이터 유입이 없는 stream에 대해서는 subscription을 강제 종료한다. soft-delete하고, pub-sub을 사용해서 다른 instance에게 전파한다.
+6. user가 subscription을 끊으면 더이상 해당 stream을 보지 않도록 soft-delete 정책을 사용한다. 이 역시도 pub-sub을 사용해서 다른 instance들에게 알린다.
+7. user는 stream key에 telemetry을 전달한다. stream으로 데이터를 받을 시에 중복의 문제가 생길 수 있다. 따라서, key + telemetry createdAt으로 배치를 통해 중복을 제거한다.
 
-```text
-Table users {
-  user_id uuid [pk]
-  user_key varchar [unique]
-  user_type varchar
-  client_id varchar
-  client_secret_hash varchar
-  can_export boolean
-  status varchar
-  created_at timestamp
-  last_seen_at timestamp
-}
-
-Table subscriptions {
-  subscription_id uuid [pk]
-  user_id uuid
-  channel_type varchar
-  channel_key varchar
-  status varchar
-  created_at timestamp
-}
-
-Table traces {
-  trace_id uuid [pk]
-  user_id uuid
-  trace_key varchar
-  start_time timestamp
-  end_time timestamp
-  status varchar
-  total_files int
-  total_log int
-  created_at timestamp
-}
-
-Table files {
-  file_id uuid [pk]
-  trace_id uuid
-  user_id uuid [null]
-  file_key varchar
-  file_name varchar
-  file_size bigint
-  file_extension varchar
-  status varchar
-  created_at timestamp
-}
-
-Table derived_data {
-  data_id uuid [pk]
-  trace_id uuid
-  user_id uuid [null]
-  name varchar
-  data_type varchar
-  status varchar
-  created_at timestamp
-}
-
-Table entity_relations {
-  relation_id uuid [pk]
-  trace_id uuid
-  from_type varchar
-  from_id uuid
-  to_type varchar
-  to_id uuid
-  relation_type varchar
-  created_at timestamp
-}
-
-Table telemetry {
-  log_id uuid [pk]
-  trace_id uuid [null]
-  user_id uuid [null]
-  entity_type varchar
-  entity_id uuid
-  event_type varchar
-  message text
-  created_at timestamp
-}
-
-Table stored_file {
-  stored_file_id uuid [pk]
-  storage_id uuid
-  user_id uuid
-  name varchar
-  compressed boolean
-  size int
-  stored_at timestamp
-}
-
-Table storage {
-  storage_id uuid [pk]
-  name varchar
-  type varchar
-  path varchar
-  created_at timestamp
-}
-
-Table batch_summaries {
-  summary_id uuid [pk]
-  time_window varchar
-  trace_count int
-  file_count int
-  data_count int
-  dropped_files int
-  created_at timestamp
-}
-
-
-Ref: subscriptions.user_id > users.user_id
-Ref: traces.user_id > users.user_id
-Ref: files.trace_id > traces.trace_id
-Ref: files.user_id > users.user_id
-Ref: derived_data.trace_id > traces.trace_id
-Ref: derived_data.user_id > users.user_id
-Ref: entity_relations.trace_id > traces.trace_id
-Ref: telemetry.trace_id > traces.trace_id
-Ref: telemetry.user_id > users.user_id
-Ref: stored_file.storage_id > storage.storage_id
-Ref: stored_file.user_id > users.user_id
-```
+## TODO
+1. PK로 BIGINT를 쓰자, UUID는 부차적인 id로 남기자.

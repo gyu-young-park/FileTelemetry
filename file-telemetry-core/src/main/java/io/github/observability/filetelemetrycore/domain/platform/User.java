@@ -1,8 +1,7 @@
-package io.github.observability.filetelemetrycore;
+package io.github.observability.filetelemetrycore.domain.platform;
 
 import lombok.Data;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data

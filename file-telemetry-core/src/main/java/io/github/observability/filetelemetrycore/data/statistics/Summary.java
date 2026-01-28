@@ -1,4 +1,4 @@
-package io.github.observability.filetelemetrycore;
+package io.github.observability.filetelemetrycore.data.statistics;
 
 import lombok.Data;
 
