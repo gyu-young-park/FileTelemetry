@@ -27,6 +27,7 @@ repositories {
 }
 
 dependencies {
+    implementation project(':file-telemetry-core')
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.hibernate.orm:hibernate-community-dialects'

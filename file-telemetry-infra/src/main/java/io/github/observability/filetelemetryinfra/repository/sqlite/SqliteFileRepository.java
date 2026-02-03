@@ -1,7 +1,7 @@
-package io.github.observability.filetelemetryinfra.repository.file.sqlite;
+package io.github.observability.filetelemetryinfra.repository.sqlite;
 
 import io.github.observability.filetelemetryinfra.entity.FileEntity;
-import io.github.observability.filetelemetryinfra.repository.file.FileRepository;
+import io.github.observability.filetelemetryinfra.repository.FileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;

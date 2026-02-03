@@ -1,4 +1,4 @@
-package io.github.observability.filetelemetryinfra.repository.file;
+package io.github.observability.filetelemetryinfra.repository;
 
 import io.github.observability.filetelemetryinfra.entity.FileEntity;
 
