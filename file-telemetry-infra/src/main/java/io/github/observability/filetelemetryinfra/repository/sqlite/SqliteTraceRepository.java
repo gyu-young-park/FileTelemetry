@@ -2,6 +2,7 @@ package io.github.observability.filetelemetryinfra.repository.sqlite;
 
 import io.github.observability.filetelemetrycore.domain.trace.Trace;
 import io.github.observability.filetelemetrycore.repository.TraceRepository;
+import io.github.observability.filetelemetryinfra.repository.sqlite.time.TimeConvertor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -36,7 +37,7 @@ public class SqliteTraceRepository implements TraceRepository {
                 trace.getStartTime().atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli(),
                 trace.getStatus(),
                 null,
-                trace.getCreatedAt().atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli(),
-                LocalDateTime.now().atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli());
+                TimeConvertor.localDateTimeToEpoch(trace.getCreatedAt()),
+                TimeConvertor.localDateTimeToEpoch(LocalDateTime.now()));
     }
 }

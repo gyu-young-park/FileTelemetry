@@ -1,4 +1,4 @@
-package io.github.observability.filetelemetryapi.data.dto;
+package io.github.observability.filetelemetryapi.data.dto.trace;
 
 import lombok.Getter;
 import lombok.Setter;

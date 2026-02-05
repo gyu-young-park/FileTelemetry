@@ -1,7 +1,7 @@
 package io.github.observability.filetelemetryapi.controller;
 
-import io.github.observability.filetelemetryapi.data.dto.CreateTraceRequest;
-import io.github.observability.filetelemetryapi.data.dto.CreateTraceResponse;
+import io.github.observability.filetelemetryapi.data.dto.trace.CreateTraceRequest;
+import io.github.observability.filetelemetryapi.data.dto.trace.CreateTraceResponse;
 import io.github.observability.filetelemetryapi.data.mapper.TraceMapper;
 import io.github.observability.filetelemetryapi.service.TraceService;
 import io.github.observability.filetelemetrycore.domain.trace.Trace;

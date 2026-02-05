@@ -2,12 +2,12 @@ PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY,
-    user_key TEXT UNIQUE NOT NULL,
-    user_role TEXT,
-    user_name TEXT,
+    key TEXT UNIQUE NOT NULL,
+    role TEXT,
+    name TEXT,
     client_id TEXT,
-    client_secret_hash TEXT,
-    can_export INTEGER,
+    secret_hash TEXT,
+    export INTEGER,
     status TEXT,
     created_at INTEGER,
     updated_at INTEGER,
@@ -22,13 +22,13 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     status TEXT,
     created_at INTEGER,
     updated_at INTEGER,
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS traces (
     id INTEGER PRIMARY KEY,
     user_name TEXT,
-    trace_key TEXT,
+    key TEXT,
     status TEXT,
     start_time INTEGER,
     end_time INTEGER,
@@ -40,15 +40,15 @@ CREATE TABLE IF NOT EXISTS files (
     id INTEGER PRIMARY KEY,
     trace_id INTEGER NOT NULL,
     user_id INTEGER,
-    file_key TEXT,
-    file_name TEXT,
-    file_size INTEGER,
-    file_extension TEXT,
+    key TEXT,
+    name TEXT,
+    size INTEGER,
+    extension TEXT,
     status TEXT,
     created_at INTEGER,
     updated_at INTEGER,
-    FOREIGN KEY (trace_id) REFERENCES traces(trace_id),
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    FOREIGN KEY (trace_id) REFERENCES traces(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS derived_data (
@@ -60,8 +60,8 @@ CREATE TABLE IF NOT EXISTS derived_data (
     status TEXT,
     created_at INTEGER,
     updated_at INTEGER,
-    FOREIGN KEY (trace_id) REFERENCES traces(trace_id),
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    FOREIGN KEY (trace_id) REFERENCES traces(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS entity_relations (
@@ -71,10 +71,10 @@ CREATE TABLE IF NOT EXISTS entity_relations (
     from_id INTEGER,
     to_type TEXT,
     to_id INTEGER,
-    relation_type TEXT,
+    type TEXT,
     created_at INTEGER,
     updated_at INTEGER,
-    FOREIGN KEY (trace_id) REFERENCES traces(trace_id)
+    FOREIGN KEY (trace_id) REFERENCES traces(id)
 );
 
 CREATE TABLE IF NOT EXISTS telemetry (
@@ -87,8 +87,8 @@ CREATE TABLE IF NOT EXISTS telemetry (
     message TEXT,
     created_at INTEGER,
     updated_at INTEGER,
-    FOREIGN KEY (trace_id) REFERENCES traces(trace_id),
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    FOREIGN KEY (trace_id) REFERENCES traces(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS storage (
@@ -109,8 +109,8 @@ CREATE TABLE IF NOT EXISTS stored_file (
     size INTEGER,
     stored_at INTEGER,
     updated_at INTEGER,
-    FOREIGN KEY (storage_id) REFERENCES storage(storage_id),
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    FOREIGN KEY (storage_id) REFERENCES storage(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS batch_summaries (

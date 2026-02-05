@@ -80,3 +80,21 @@ trace(A)----|-------File2 -> drop     |--- data1 ----- data4
 
 ## TODO
 1. PK로 BIGINT를 쓰자, UUID는 부차적인 id로 남기자.
+2. User를 먼저 만들고, register하는 API가 필요하다. -> User를 기반으로 Trace 데이터를 전달하기 때문
+3. User랑 Subscription이 맺어지면, channel을 전달해주도록 하자.
+
+### TODO: Trace
+
+
+### TODO: User - Subscription
+
+1. 시작할 때 user가 file telemetry에 요청을 보내어, 자신의 식별자와 seceret key, channel 방식을 넘긴다. 여기서 chanell은 redis, kafka가 있다. 또한, callback url을 하나 주는데, 이 callback url로 event를 수신할 수 있다. 생략할 수도 있는데 생략하면 file telemtetry에서 전달하는 event 수신이 안된다.
+2. file telemetry에서 식별자를 받고 secret key를 식별하면 되면 이제 서비스가 시작되며 subscription을 ready 상태로 둔다.
+3. redis로 가정하고 file tlemetry는 redis stream key를 만들고 전달해준다.
+4. 유저가 해당 redis stream key를 통해서 file telemtry와 식별자를 같이 넘긴다.
+5. file telemetry는 user 식별자를 받아서 비교한 후에 성공하면 subscription의 상태를 progress로 바꾼다.
+6. file telemetry는 일정 시간 해당 channel로 데이터를 받지 못하면 subscripion 상태를 pending으로 바꾼다.
+7. 일정 시간 데이터가 오면 pending을 다시 progress로 바꾸고, 데이터가 더 이상 안오면 delete로 바꾸고, event를 전달해준다.
+8. 만약 delete 상태에서 데이터가 다시 오면, event로 다시 subscription을 가지라고 보낸다.
+9. 일정 기간이 지나면 db에서 삭제한다.
+

@@ -10,9 +10,20 @@ public class User {
     private String key;
     private String clientId;
     private String password;
-    private String userRole;
-    private boolean export;
+    private boolean canExport;
+    private UserRole userRole;
+    private UserStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime lastLoginAt;
+
+    public static User register(String name, String key, String password) {
+        User user = new User();
+        user.setName(name);
+        user.setKey(key);
+        user.setPassword(password);
+        user.setUserRole(UserRole.APP);
+        user.setStatus(UserStatus.ACTIVE);
+        return user;
+    }
 }
